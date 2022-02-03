@@ -1,0 +1,21 @@
+cabal-version:      2.4
+name:               mand-simple
+version:            0.1.0.0
+author:             Artem Pelenitsyn
+maintainer:         a.pelenitsyn@gmail.com
+
+executable mandelbrot
+    main-is:          main.hs
+
+    default-extensions:
+        BangPatterns 
+
+    ghc-options: -threaded -rtsopts -O2 -fllvm
+
+    build-depends:   base
+                   , bytestring
+                   , parallel
+                   , vector
+
+    hs-source-dirs:   .
+    default-language: Haskell2010
