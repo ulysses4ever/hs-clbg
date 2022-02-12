@@ -2,8 +2,8 @@
 
 ## What
 
-This repo holds (hopefully, up to date) implementations of [the famous CLBG benchmarks
-suite][wiki]. Measurements can be seen [on the official site][measures].
+This repo holds (hopefully, up to date) Haskell implementations of [the famous CLBG benchmarks
+suite][wiki]. Measurements (for a rather recent GHC) can be seen [on the official site][measures].
 
 [wiki]: https://en.wikipedia.org/wiki/The_Computer_Language_Benchmarks_Game
 [measures]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/measurements/ghc.html
