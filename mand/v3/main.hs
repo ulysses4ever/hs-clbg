@@ -12,6 +12,8 @@
 -- - Processed 64 pixels at a time if width was a multiple of 64,
 --    thereby reducing writes to the bitmap.
 
+-- GHC 9.2, 9.10 fixes contributed by Artem Pelenitsyn
+
 import GHC.IO
 import GHC.Exts
 import System.Environment
@@ -75,21 +77,21 @@ calcSum
     sum01 = r'0 `plusDoubleX2#` i'0
     r01 = (r'0 `minusDoubleX2#` i'0) `plusDoubleX2#` initR0
     i01 = (ri0 `plusDoubleX2#` ri0) `plusDoubleX2#` initI
-    
+
     r'1 = r10 `timesDoubleX2#` r10
     i'1 = i10 `timesDoubleX2#` i10
     ri1 = r10 `timesDoubleX2#` i10
     sum11 = r'1 `plusDoubleX2#` i'1
     r11 = (r'1 `minusDoubleX2#` i'1) `plusDoubleX2#` initR1
     i11 = (ri1 `plusDoubleX2#` ri1) `plusDoubleX2#` initI
-    
+
     r'2 = r20 `timesDoubleX2#` r20
     i'2 = i20 `timesDoubleX2#` i20
     ri2 = r20 `timesDoubleX2#` i20
     sum21 = r'2 `plusDoubleX2#` i'2
     r21 = (r'2 `minusDoubleX2#` i'2) `plusDoubleX2#` initR2
     i21 = (ri2 `plusDoubleX2#` ri2) `plusDoubleX2#` initI
-    
+
     r'3 = r30 `timesDoubleX2#` r30
     i'3 = i30 `timesDoubleX2#` i30
     ri3 = r30 `timesDoubleX2#` i30
@@ -98,7 +100,7 @@ calcSum
     i31 = (ri3 `plusDoubleX2#` ri3) `plusDoubleX2#` initI
 
 type DoubleX24# = (# DoubleX2#, DoubleX2#, DoubleX2#, DoubleX2# #)
-    
+
 {-# INLINE mand8 #-}
 mand8 :: ByteArray# -> Int# -> DoubleX2# -> Word#
 mand8 initRs indexR initI = go1 6# (# initR, i, initSum #) where
@@ -170,11 +172,11 @@ main = do
     case newMVar# s of { (# s, var #) ->
     case putMVar# var 0 s of { s ->
     let
-      chunkSize# = widHt# `uncheckedIShiftRA#` 6# 
+      chunkSize# = widHt# `uncheckedIShiftRA#` 6#
       worker s
         | isTrue# (notI# (widHt# `remInt#` 64#)) =
           case newMVar# s of { (# s, thread #) ->
-          case fork# (IO (\s ->
+          case fork# (\s ->
             let
               go s = case takeMVar# var s of
                 (# s, I# val #)
@@ -189,7 +191,7 @@ main = do
                       let
                         go1 y s
                           | isTrue# (y <# (val +# chunk)) = -- case (\(IO x) -> x) (putStrLn (show (D# (indexDoubleArray# i0 y)))) s of { (# s, () #) ->
-                            let 
+                            let
                               init_i = broadcastDoubleX2# (indexDoubleArray# i0 y)
                               rowstart = y *# (widHt# `uncheckedIShiftRA#` 6#)
                               go2 x s
@@ -202,11 +204,11 @@ main = do
                           | otherwise = s
                       in go (go1 val s) }
                   | otherwise -> (# putMVar# thread () (putMVar# var (I# val) s), () #)
-            in go s)) s of
+            in go s) s of
             (# s, _ #) -> (# s, thread #) }
-        | otherwise = 
+        | otherwise =
           case newMVar# s of { (# s, thread #) ->
-          case fork# (IO (\s ->
+          case fork# (\s ->
             let
               go s = case takeMVar# var s of
                 (# s, I# val #)
@@ -221,7 +223,7 @@ main = do
                       let
                         go1 y s
                           | isTrue# (y <# (val +# chunk)) = -- case (\(IO x) -> x) (putStrLn (show (D# (indexDoubleArray# i0 y)))) s of { (# s, () #) ->
-                            let 
+                            let
                               init_i = broadcastDoubleX2# (indexDoubleArray# i0 y)
                               rowstart = y *# (widHt# `uncheckedIShiftRA#` 3#)
                               go2 x s
@@ -234,10 +236,10 @@ main = do
                           | otherwise = s
                       in go (go1 val s) }
                   | otherwise -> (# putMVar# thread () (putMVar# var (I# val) s), () #)
-            in go s)) s of
+            in go s) s of
             (# s, _ #) -> (# s, thread #) }
     in
-      case worker s of { (# s, thread0 #) -> 
+      case worker s of { (# s, thread0 #) ->
       case worker s of { (# s, thread1 #) ->
       case worker s of { (# s, thread2 #) ->
       case worker s of { (# s, thread3 #) ->
@@ -249,4 +251,3 @@ main = do
       (# s, B.unsafePackAddressLen (I# pixelLength#) (byteArrayContents# pixels) #) }
       }}}}}}}}}}}}}}}
   B.putStr pixels
-
